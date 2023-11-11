@@ -17,6 +17,19 @@ pub mod griffy_voter {
         let poll = &mut ctx.accounts.poll;
         poll.poll_question = poll_question;
         poll.total_votes = 0;
+
+        let poll_counter = &mut ctx.accounts.poll_counter;
+        poll_counter.increment();
+
+        Ok(())
+    }
+
+    pub fn cast_vote(ctx: Context<CastVote>, timelock_encrypted_vote: String) -> Result<()> {
+        let vote = &mut ctx.accounts.vote;
+        vote.timelock_encrypted_vote = timelock_encrypted_vote;
+
+        let poll = &mut ctx.accounts.poll;
+        poll.total_votes += 1;
         Ok(())
     }
 }
@@ -48,6 +61,19 @@ pub struct CreatePoll<'info> {
     pub poll: Account<'info, Poll>,
     #[account(mut)]
     pub admin: Signer<'info>,
+    #[account(mut)]
+    pub poll_counter: Account<'info, PollCounter>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CastVote<'info> {
+    #[account(init, payer = voter, space = Vote::size(), seeds = ["vote".as_bytes()], bump)]
+    pub vote: Account<'info, Vote>,
+    #[account(mut)]
+    pub voter: Signer<'info>,
+    #[account(mut)]
+    pub poll: Account<'info, Poll>,
     pub system_program: Program<'info, System>,
 }
 
@@ -77,7 +103,7 @@ pub struct Poll {
 #[account]
 pub struct Vote {
     pub voter: Pubkey, // voter's address
-    pub vote: String, // timelock encrypted vote
+    pub timelock_encrypted_vote: String, // timelock encrypted vote
     pub amount: u64, // stake amount
     pub bump: u8, // bump seed
 }
@@ -129,10 +155,10 @@ impl Vote {
             1 // bump
     }
 
-    pub fn new(voter: Pubkey, vote: String, amount: u64, bump: u8) -> Self {
+    pub fn new(voter: Pubkey, timelock_encrypted_vote: String, amount: u64, bump: u8) -> Self {
         Self {
             voter,
-            vote,
+            timelock_encrypted_vote,
             amount,
             bump,
         }
