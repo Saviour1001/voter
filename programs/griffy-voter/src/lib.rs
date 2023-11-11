@@ -57,7 +57,7 @@ pub struct CreatePoll<'info> {
         init,
         payer = admin,
         space = Poll::size(),
-        seeds = ["poll_question".as_bytes(), poll_counter.total_polls.to_le_bytes().as_ref()],
+        seeds = [b"poll_question", poll_counter.total_polls.to_le_bytes().as_ref()],
         bump
     )]
     pub poll: Account<'info, Poll>,
