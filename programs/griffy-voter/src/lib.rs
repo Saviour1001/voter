@@ -10,7 +10,9 @@ pub mod griffy_voter {
         let poll_counter = &mut ctx.accounts.poll_counter;
         poll_counter.admin = *ctx.accounts.admin.key;
         poll_counter.total_polls = 0;
-        Ok(())
+        poll_counter.bump = ctx.bumps.poll_counter;
+
+        Ok(())    
     }
 
     pub fn create_poll(ctx: Context<CreatePoll>, poll_question: String) -> Result<()> {
@@ -18,17 +20,20 @@ pub mod griffy_voter {
         poll.poll_question = poll_question;
         poll.total_votes = 0;
         poll.poll_id = ctx.accounts.poll_counter.total_polls;
+        poll.bump = ctx.bumps.poll;
 
-        let poll_counter = &mut ctx.accounts.poll_counter;
+        let poll_counter: &mut Account<'_, PollCounter> = &mut ctx.accounts.poll_counter;
         poll_counter.increment();
 
         Ok(())
     }
 
-    pub fn cast_vote(ctx: Context<CastVote>, timelock_encrypted_vote: String) -> Result<()> {
+    pub fn cast_vote(ctx: Context<CastVote>, timelock_encrypted_vote: String, amount: u64) -> Result<()> {
         let vote = &mut ctx.accounts.vote;
         vote.timelock_encrypted_vote = timelock_encrypted_vote;
+        vote.amount = amount;
         vote.vote_id = ctx.accounts.poll.total_votes;
+        vote.bump = ctx.bumps.vote;
 
         let poll = &mut ctx.accounts.poll;
         poll.total_votes += 1;
@@ -57,14 +62,17 @@ pub struct CreatePoll<'info> {
         init,
         payer = admin,
         space = Poll::size(),
-        seeds = [b"poll_question", poll_counter.total_polls.to_le_bytes().as_ref()],
+        seeds = [b"poll_question", poll_counter.total_polls.to_be_bytes().as_ref()],
         bump
     )]
     pub poll: Account<'info, Poll>,
+    
     #[account(mut)]
     pub admin: Signer<'info>,
+    
     #[account(mut)]
     pub poll_counter: Account<'info, PollCounter>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -76,8 +84,8 @@ pub struct CastVote<'info> {
         space = Vote::size(),
         seeds = [
             "vote".as_bytes(),
-            poll.poll_id.to_le_bytes().as_ref(),
-            poll.total_votes.to_le_bytes().as_ref(),
+            poll.poll_id.to_be_bytes().as_ref(),
+            poll.total_votes.to_be_bytes().as_ref(),
         ],
         bump
     )]
@@ -91,14 +99,12 @@ pub struct CastVote<'info> {
 
 const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
-const VECTOR_LENGTH: usize = 4;
 const STRING_LENGTH_PREFIX: usize = 4;
 const MAX_POLL_LENGTH: usize = 280 * 4; // 280 chars max.
 const MAX_VOTE_LENGTH: usize = 280 * 4; // 280 chars max.
 const U_64_LENGTH: usize = 8;
 
 #[account]
-#[derive(Default)]
 pub struct PollCounter {
     pub admin: Pubkey, // admin's address
     pub total_polls: u64, // total polls
@@ -130,11 +136,11 @@ impl PollCounter {
             1 // bump
     }
 
-    pub fn new(admin: Pubkey, bump: u8) -> Self {
-        Self {
+    pub fn new(admin: Pubkey, total_polls: u64, bump: u8) -> Self {
+        PollCounter {
             admin,
+            total_polls,
             bump,
-            ..Default::default()
         }
     }
 
