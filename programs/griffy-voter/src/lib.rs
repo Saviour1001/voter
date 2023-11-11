@@ -17,6 +17,7 @@ pub mod griffy_voter {
         let poll = &mut ctx.accounts.poll;
         poll.poll_question = poll_question;
         poll.total_votes = 0;
+        poll.poll_id = ctx.accounts.poll_counter.total_polls;
 
         let poll_counter = &mut ctx.accounts.poll_counter;
         poll_counter.increment();
@@ -27,6 +28,7 @@ pub mod griffy_voter {
     pub fn cast_vote(ctx: Context<CastVote>, timelock_encrypted_vote: String) -> Result<()> {
         let vote = &mut ctx.accounts.vote;
         vote.timelock_encrypted_vote = timelock_encrypted_vote;
+        vote.vote_id = ctx.accounts.poll.total_votes;
 
         let poll = &mut ctx.accounts.poll;
         poll.total_votes += 1;
@@ -55,7 +57,7 @@ pub struct CreatePoll<'info> {
         init,
         payer = admin,
         space = Poll::size(),
-        seeds = ["poll_question".as_bytes()],
+        seeds = ["poll_question".as_bytes(), poll_counter.total_polls.to_le_bytes().as_ref()],
         bump
     )]
     pub poll: Account<'info, Poll>,
@@ -68,7 +70,17 @@ pub struct CreatePoll<'info> {
 
 #[derive(Accounts)]
 pub struct CastVote<'info> {
-    #[account(init, payer = voter, space = Vote::size(), seeds = ["vote".as_bytes()], bump)]
+    #[account(
+        init,
+        payer = voter,
+        space = Vote::size(),
+        seeds = [
+            "vote".as_bytes(),
+            poll.poll_id.to_le_bytes().as_ref(),
+            poll.total_votes.to_le_bytes().as_ref(),
+        ],
+        bump
+    )]
     pub vote: Account<'info, Vote>,
     #[account(mut)]
     pub voter: Signer<'info>,
@@ -96,6 +108,7 @@ pub struct PollCounter {
 #[account]
 pub struct Poll {
     pub poll_question: String, // poll question
+    pub poll_id: u64, // poll id
     pub total_votes: u64, // total votes
     pub bump: u8, // bump seed
 }
@@ -103,6 +116,7 @@ pub struct Poll {
 #[account]
 pub struct Vote {
     pub voter: Pubkey, // voter's address
+    pub vote_id: u64, // vote id
     pub timelock_encrypted_vote: String, // timelock encrypted vote
     pub amount: u64, // stake amount
     pub bump: u8, // bump seed
@@ -137,9 +151,10 @@ impl Poll {
             1 // bump
     }
 
-    pub fn new(poll_question: String, total_votes: u64, bump: u8) -> Self {
+    pub fn new(poll_question: String, total_votes: u64, poll_id: u64, bump: u8) -> Self {
         Self {
             poll_question,
+            poll_id,
             total_votes,
             bump,
         }
@@ -155,9 +170,16 @@ impl Vote {
             1 // bump
     }
 
-    pub fn new(voter: Pubkey, timelock_encrypted_vote: String, amount: u64, bump: u8) -> Self {
+    pub fn new(
+        voter: Pubkey,
+        timelock_encrypted_vote: String,
+        vote_id: u64,
+        amount: u64,
+        bump: u8
+    ) -> Self {
         Self {
             voter,
+            vote_id,
             timelock_encrypted_vote,
             amount,
             bump,
