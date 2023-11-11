@@ -108,7 +108,7 @@ describe("griffy-voter", () => {
     console.log("vote11Pda", vote11Pda.toBase58());
 
     const tx = await program.methods
-      .castVote("timelock-vote-string")
+      .castVote("timelock-vote-string", new anchor.BN(322))
       .accounts({
         poll: pollQuestionPDA1,
         vote: vote11Pda,
@@ -136,7 +136,7 @@ describe("griffy-voter", () => {
     console.log("vote12Pda", vote12Pda.toBase58());
 
     const tx = await program.methods
-      .castVote("timelock-vote-string-vote2")
+      .castVote("timelock-vote-string-vote2", new anchor.BN(322))
       .accounts({
         poll: pollQuestionPDA1,
         vote: vote12Pda,

@@ -25,10 +25,15 @@ pub mod griffy_voter {
         Ok(())
     }
 
-    pub fn cast_vote(ctx: Context<CastVote>, timelock_encrypted_vote: String) -> Result<()> {
+    pub fn cast_vote(
+        ctx: Context<CastVote>,
+        timelock_encrypted_vote: String,
+        amount: u64
+    ) -> Result<()> {
         let vote = &mut ctx.accounts.vote;
         vote.timelock_encrypted_vote = timelock_encrypted_vote;
         vote.vote_id = ctx.accounts.poll.total_votes;
+        vote.amount = amount;
 
         let poll = &mut ctx.accounts.poll;
         poll.total_votes += 1;
