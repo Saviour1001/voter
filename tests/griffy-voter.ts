@@ -4,12 +4,11 @@ import { GriffyVoter } from "../target/types/griffy_voter";
 import { expect } from "chai";
 
 const toBytesInt64 = (num: bigint): Buffer => {
-    const arr = new ArrayBuffer(8);
-    const view = new DataView(arr);
-    view.setBigUint64(0, num);
-    return Buffer.from(arr);
+  const arr = new ArrayBuffer(8);
+  const view = new DataView(arr);
+  view.setBigUint64(0, num);
+  return Buffer.from(arr);
 };
-
 
 describe("griffy-voter", () => {
   // Configure the client to use the local cluster.
@@ -36,14 +35,11 @@ describe("griffy-voter", () => {
   let pollQuestionPDA2: anchor.web3.PublicKey;
   let pollQuestionInfo2 = null;
 
-  let reply11Pda: anchor.web3.PublicKey;
-  let reply11Info = null;
+  let vote11Pda: anchor.web3.PublicKey;
+  let vote11Info = null;
 
-  let reply12Pda: anchor.web3.PublicKey;
-  let reply12Info = null;
-
-  let reply21Pda: anchor.web3.PublicKey;
-  let reply21Info = null;
+  let vote12Pda: anchor.web3.PublicKey;
+  let vote12Info = null;
 
   it("Is initialized!", async () => {
     const [newPollCounterPDA, _] =
@@ -55,24 +51,21 @@ describe("griffy-voter", () => {
         program.programId
       );
 
-    pollCounterPDA = newPollCounterPDA
+    pollCounterPDA = newPollCounterPDA;
 
-    const tx = await program.methods.initialize().accounts({
-      admin: program.provider.publicKey,
-      pollCounter: pollCounterPDA,
-    })
-    .rpc();
+    const tx = await program.methods
+      .initialize()
+      .accounts({
+        admin: program.provider.publicKey,
+        pollCounter: pollCounterPDA,
+      })
+      .rpc();
 
     pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
-
-    console.log(pollCounterInfo)
-
   });
 
   it("Creates first poll!", async () => {
-      pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
-
-      console.log(pollCounterInfo)
+    pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
 
     const [newPollQuestionPDA, _] =
       await anchor.web3.PublicKey.findProgramAddressSync(
@@ -83,55 +76,110 @@ describe("griffy-voter", () => {
         program.programId
       );
 
-    pollQuestionPDA1 = newPollQuestionPDA
+    pollQuestionPDA1 = newPollQuestionPDA;
 
-    console.log("pollQuestionPDA", pollQuestionPDA1.toBase58());
+    console.log("pollQuestionPDA1", pollQuestionPDA1.toBase58());
 
     const tx = await program.methods
       .createPoll("What is your favorite color?")
       .accounts({
         poll: pollQuestionPDA1,
         admin: program.provider.publicKey,
-        pollCounter: pollCounterPDA
+        pollCounter: pollCounterPDA,
       })
       .rpc();
 
     pollQuestionInfo1 = await program.account.poll.fetch(pollQuestionPDA1);
-
-    console.log([pollQuestionInfo1])
+    console.log("pollQuestionInfo1", pollQuestionInfo1);
   });
 
-    it("Creates second poll!", async () => {
-      pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
+  it("First vote on first poll!", async () => {
+    const [newVotePDA, _] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        anchor.utils.bytes.utf8.encode("vote"),
+        toBytesInt64(pollQuestionInfo1.pollId),
+        toBytesInt64(pollQuestionInfo1.totalVotes),
+      ],
+      program.programId
+    );
 
-      console.log(pollCounterInfo)
+    vote11Pda = newVotePDA;
 
-    const [newPollQuestionPDA, _] =
-      await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          anchor.utils.bytes.utf8.encode("poll_question"),
-          toBytesInt64(pollCounterInfo.totalPolls),
-        ],
-        program.programId
-      );
-
-    pollQuestionPDA2 = newPollQuestionPDA
-
-    console.log("pollQuestionPDA", pollQuestionPDA2.toBase58());
+    console.log("vote11Pda", vote11Pda.toBase58());
 
     const tx = await program.methods
-      .createPoll("What is your favorite book?")
+      .castVote("timelock-vote-string")
       .accounts({
-        poll: pollQuestionPDA2,
-        admin: program.provider.publicKey,
-        pollCounter: pollCounterPDA
+        poll: pollQuestionPDA1,
+        vote: vote11Pda,
+        voter: program.provider.publicKey,
       })
       .rpc();
 
-    pollQuestionInfo2 = await program.account.poll.fetch(pollQuestionPDA2);
+    vote11Info = await program.account.vote.fetch(vote11Pda);
 
-    console.log([pollQuestionInfo2])
+    console.log([vote11Info]);
   });
+
+  it("Second vote on first poll!", async () => {
+    const [newVotePDA, _] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        anchor.utils.bytes.utf8.encode("vote"),
+        toBytesInt64(pollQuestionInfo1.pollId),
+        toBytesInt64(pollQuestionInfo1.totalVotes),
+      ],
+      program.programId
+    );
+
+    vote12Pda = newVotePDA;
+
+    console.log("vote12Pda", vote12Pda.toBase58());
+
+    const tx = await program.methods
+      .castVote("timelock-vote-string-vote2")
+      .accounts({
+        poll: pollQuestionPDA1,
+        vote: vote12Pda,
+        voter: program.provider.publicKey,
+      })
+      .rpc();
+
+    vote12Info = await program.account.vote.fetch(vote12Pda);
+
+    console.log([vote12Info]);
+  });
+
+  // it("Creates second poll!", async () => {
+  //   pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
+
+  //   console.log("pollCounterInfo", pollCounterInfo.totalPolls);
+
+  //   const [newPollQuestionPDA, _] =
+  //     await anchor.web3.PublicKey.findProgramAddressSync(
+  //       [
+  //         anchor.utils.bytes.utf8.encode("poll_question"),
+  //         toBytesInt64(pollCounterInfo.totalPolls),
+  //       ],
+  //       program.programId
+  //     );
+
+  //   pollQuestionPDA2 = newPollQuestionPDA;
+
+  //   console.log("pollQuestionPDA", pollQuestionPDA2.toBase58());
+
+  //   const tx = await program.methods
+  //     .createPoll("What is your favorite book?")
+  //     .accounts({
+  //       poll: pollQuestionPDA2,
+  //       admin: program.provider.publicKey,
+  //       pollCounter: pollCounterPDA,
+  //     })
+  //     .rpc();
+
+  //   pollQuestionInfo2 = await program.account.poll.fetch(pollQuestionPDA2);
+
+  //   console.log([pollQuestionInfo2]);
+  // });
 
   async function generateFundedKeypair(): Promise<anchor.web3.Keypair> {
     const newKeypair = anchor.web3.Keypair.generate();
