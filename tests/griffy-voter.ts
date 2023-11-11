@@ -4,10 +4,10 @@ import { GriffyVoter } from "../target/types/griffy_voter";
 import { expect } from "chai";
 
 const toBytesInt64 = (num: bigint): Buffer => {
-    const arr = new ArrayBuffer(8);
-    const view = new DataView(arr);
-    view.setBigUint64(0, num);
-    return Buffer.from(arr);
+  const arr = new ArrayBuffer(8);
+  const view = new DataView(arr);
+  view.setBigUint64(0, num);
+  return Buffer.from(arr);
 };
 
 describe("griffy-voter", () => {
@@ -44,24 +44,29 @@ describe("griffy-voter", () => {
         program.programId
       );
 
-    pollCounterPDA = newPollCounterPDA
+    pollCounterPDA = newPollCounterPDA;
 
-    const tx = await program.methods.initialize().accounts({
-      admin: program.provider.publicKey,
-      pollCounter: pollCounterPDA,
-    })
-    .rpc();
+    const tx = await program.methods
+      .initialize()
+      .accounts({
+        admin: program.provider.publicKey,
+        pollCounter: pollCounterPDA,
+      })
+      .rpc();
 
     pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
 
-    console.log(pollCounterInfo)
+    console.log(pollCounterInfo);
 
+    console.log(
+      "================================================================================================"
+    );
   });
 
   it("Creates first poll!", async () => {
     pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
 
-    console.log(pollCounterInfo)
+    console.log(pollCounterInfo);
 
     const [newPollQuestionPDA, _] =
       await anchor.web3.PublicKey.findProgramAddressSync(
@@ -72,7 +77,7 @@ describe("griffy-voter", () => {
         program.programId
       );
 
-    pollQuestionPDA1 = newPollQuestionPDA
+    pollQuestionPDA1 = newPollQuestionPDA;
 
     console.log("pollQuestionPDA", pollQuestionPDA1.toBase58());
 
@@ -81,19 +86,22 @@ describe("griffy-voter", () => {
       .accounts({
         poll: pollQuestionPDA1,
         admin: program.provider.publicKey,
-        pollCounter: pollCounterPDA
+        pollCounter: pollCounterPDA,
       })
       .rpc();
 
     pollQuestionInfo1 = await program.account.poll.fetch(pollQuestionPDA1);
 
-    console.log([pollQuestionInfo1])
+    console.log([pollQuestionInfo1]);
+    console.log(
+      "================================================================================================"
+    );
   });
 
   it("Creates second poll!", async () => {
     pollCounterInfo = await program.account.pollCounter.fetch(pollCounterPDA);
 
-    console.log(pollCounterInfo)
+    console.log(pollCounterInfo);
 
     const [newPollQuestionPDA, _] =
       await anchor.web3.PublicKey.findProgramAddressSync(
@@ -104,7 +112,7 @@ describe("griffy-voter", () => {
         program.programId
       );
 
-    pollQuestionPDA2 = newPollQuestionPDA
+    pollQuestionPDA2 = newPollQuestionPDA;
 
     console.log("pollQuestionPDA", pollQuestionPDA2.toBase58());
 
@@ -113,13 +121,16 @@ describe("griffy-voter", () => {
       .accounts({
         poll: pollQuestionPDA2,
         admin: program.provider.publicKey,
-        pollCounter: pollCounterPDA
+        pollCounter: pollCounterPDA,
       })
       .rpc();
 
     pollQuestionInfo2 = await program.account.poll.fetch(pollQuestionPDA2);
 
-    console.log([pollQuestionInfo2])
+    console.log([pollQuestionInfo2]);
+    console.log(
+      "================================================================================================"
+    );
   });
 
   it("First vote on first poll!", async () => {
@@ -150,7 +161,9 @@ describe("griffy-voter", () => {
     vote11Info = await program.account.vote.fetch(vote11Pda);
 
     console.log("vote11Info", vote11Info);
-
+    console.log(
+      "================================================================================================"
+    );
   });
 
   it("Second vote on first poll!", async () => {
@@ -181,7 +194,9 @@ describe("griffy-voter", () => {
     vote12Info = await program.account.vote.fetch(vote12Pda);
 
     console.log("vote12Info", vote12Info);
-
+    console.log(
+      "================================================================================================"
+    );
   });
 
   it("First vote on second poll!", async () => {
@@ -212,7 +227,8 @@ describe("griffy-voter", () => {
     vote21Info = await program.account.vote.fetch(vote21Pda);
 
     console.log("vote21Info", vote21Info);
-
+    console.log(
+      "================================================================================================"
+    );
   });
-
 });
